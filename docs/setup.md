@@ -15,43 +15,78 @@ hand), setting the organization up from diMail or diVoice, and running it afterw
 
 ## Where the data lives
 
-D1 can keep a database inside a **jurisdiction**: with `eu` it runs and stores its data only in the
-European Union. That is a guarantee, unlike a *location hint* (`weur`, `eeur`…), which is only a
-preference. A jurisdiction is chosen when the database is created and can't be changed afterwards.
+D1, Cloudflare's database, can keep a database inside a **jurisdiction**. With the European Union as
+its jurisdiction, a database runs and stores its data only in the EU: that is a guarantee. A
+*location hint* (for example "Eastern Europe") is only a preference, and Cloudflare may place the
+database elsewhere. The jurisdiction is chosen when the database is created and can't be changed
+afterwards.
 
-The template creates the database **in the EU by default** (`"jurisdiction": "eu"` in
-`deploy/wrangler.jsonc`, which needs wrangler 4.159 or later). That's the recommended choice for
-organizations in Europe; elsewhere it still works, a little farther from your members. To choose
-otherwise, before the **first** deploy either remove that line (Cloudflare's default location) or
-create the database yourself and put its `database_id` in its place:
+**The Deploy to Cloudflare button doesn't guarantee a database in the EU.** Its form creates the
+database itself and offers only a location hint; the `"jurisdiction": "eu"` line in the template is
+ignored there. We checked it on 9 November 2026: a database created by the button had no
+jurisdiction. So:
 
-```bash
-npx wrangler d1 create diserver --jurisdiction=eu      # or --location=wnam, enam, weur, eeur, apac, oc
-```
-
-After the first deploy, check it in the Cloudflare dashboard: Storage & databases › D1 › your
-database shows its jurisdiction. If it isn't the one you wanted, delete the Worker and the database
-and deploy again: there's nothing in it yet.
+- **Organizations in Europe**: first create the database yourself, with the European Union as its
+  jurisdiction, then pick it in the button's form. Step by step below.
+- **Elsewhere**: let the button create the database.
 
 ## Deploy with one click
 
-1. Click the **Deploy to Cloudflare** button in the [README](../README.md) and sign in to Cloudflare.
-2. Connect your GitHub account: Cloudflare copies the `deploy/` template to a repository of yours.
-   It holds only your configuration; the code comes from the `diserver` npm package.
-3. Fill in the form:
-   - **SERVER_SECRET**: 32 or more random characters. Generate it with `openssl rand -base64 36`
-     (diVoice's **Create an organization** generates one for you) and save it in your password
-     manager first: you need it to set up the organization, and the server needs it to read the
-     keys your admins save.
-   - **ORG_NAME**: your organization's name, as invite pages will show it.
-   - The Worker and database names can stay as they are.
-4. Click **Create and deploy**. Cloudflare builds the template; its deploy script creates the D1
-   database (in the EU, see above), deploys the Worker and applies the migrations. The address is
-   shown at the end, e.g. `https://diserver.acme.workers.dev`.
-5. Check it: `https://<your address>/v2/setup` answers `{"claimed":false,"secretConfigured":true}`.
+### Step 1, only for organizations in Europe: create the database in the EU
 
-To serve it from your own domain (e.g. `team.acme.example`), add a **Custom domain** in the Worker's
-settings on Cloudflare. Invite links use whatever address members open.
+1. **A Cloudflare account.** If you don't have one, open
+   [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up), sign up with your work email
+   and a password, and confirm the email Cloudflare sends you. The free plan is enough for diMail;
+   diVoice needs Workers Paid (see [Before you start](#before-you-start)). If you have an account,
+   sign in at [dash.cloudflare.com](https://dash.cloudflare.com).
+2. In the menu on the left, under **Storage & databases**, click **D1 SQLite Database**. In a narrow
+   window the menu hides behind the ☰ button at the top left.
+3. Click **Create Database**.
+4. **Name**: `diserver`.
+5. Under **Data location**, choose **Specify jurisdiction**, click **Provide a jurisdiction**, and in
+   **Location** pick **The European Union**.
+6. Click **Create**. Cloudflare opens the new database.
+7. Check it: on the database's page open **Settings**. **Jurisdiction** must show the European Union.
+   If it shows **None**, delete the database (**Delete database**, at the bottom of the same page) and
+   start again from point 3: it's still empty, and a jurisdiction can't be added later.
+
+### Step 2: deploy with the button
+
+1. Click **Deploy to Cloudflare** in the [README](../README.md). Sign in to Cloudflare if asked.
+2. **Git account**: click **New GitHub connection**, sign in to GitHub and install the **Cloudflare
+   Workers and Pages** app when GitHub asks. Cloudflare creates a repository in your GitHub account
+   with your server's configuration (the code itself comes from the `diserver` npm package), and
+   deploys again whenever that repository changes. Back in the form, pick your account under **Git
+   account**. If Cloudflare brings you back to a page called **Select a repository** instead of the
+   form, open the button's link again.
+3. Tick **Create private Git repository**. Nothing in it is secret, but there's no reason to publish it.
+4. **Project name**: the Worker's name, which is also the start of its address,
+   `https://<project name>.<your subdomain>.workers.dev`. `diserver` is fine.
+5. The database:
+   - **in Europe**: open **Select D1 database** and choose `diserver`, the database from step 1,
+     instead of **+ Create new**. Ignore **Name your D1 Database** and **Database location hint**;
+   - **elsewhere**: leave **+ Create new**. **Database location hint** is optional.
+6. **SERVER_SECRET**: 32 or more random characters. In Terminal run `openssl rand -base64 36`, or use
+   the one diVoice's **Create an organization** generates. Save it in your password manager
+   **before** pasting it: you need it to set up the organization, and Cloudflare never shows it again.
+7. **ORG_NAME**: your organization's name, as invite pages will show it.
+8. Leave the rest as it is: **Build command** empty, **Deploy command** `npm run deploy`.
+9. Click **Deploy**. Cloudflare creates the repository, installs the server, applies the database
+   migrations and deploys the Worker. The log ends with "Success! Build completed." and shows the
+   address, for example `https://diserver.acme.workers.dev`. If Cloudflare first asks you to choose a
+   `workers.dev` subdomain, pick a short name: it becomes part of the address.
+10. Check the server: open `https://<your address>/v2/setup` in the browser. It answers
+    `{"claimed":false,"secretConfigured":true}`. Right after the first deploy the address may take a
+    few minutes to answer.
+11. In Europe, check the database once more: **Storage & databases › D1 SQLite Database › diserver ›
+    Settings**. **Jurisdiction** shows the European Union.
+
+Afterwards you can limit the Cloudflare app to the new repository: on GitHub, **Settings ›
+Applications › Installed GitHub Apps › Cloudflare Workers and Pages › Configure**, then **Only select
+repositories**.
+
+To serve the server from your own domain (e.g. `team.acme.example`), add a **Custom domain** in the
+Worker's settings on Cloudflare. Invite links use whatever address members open.
 
 ## Deploy by hand
 
@@ -64,17 +99,26 @@ npm install
 npx wrangler login
 ```
 
-Set `ORG_NAME` in `wrangler.jsonc` (and choose the database's location, see above), then:
+Create the database, in the EU if your members are in Europe:
 
 ```bash
-npm run deploy                                          # creates the database, deploys, migrates
+npx wrangler d1 create diserver --jurisdiction=eu      # elsewhere: drop --jurisdiction=eu
+```
+
+In `wrangler.jsonc`, replace the `"jurisdiction": "eu"` line with the `"database_id"` that command
+printed, and set `ORG_NAME`. Then:
+
+```bash
+npm run deploy                                          # migrations first, then the Worker
 openssl rand -base64 36 > secret.txt                    # keep a copy in your password manager
 npx wrangler secret put SERVER_SECRET < secret.txt
 rm secret.txt
 ```
 
-`npm run deploy` applies the migrations before the new code whenever the database already exists;
-only on the very first deploy do they follow it, because the database is created then.
+Without a `database_id`, `npm run deploy` lets wrangler create the database at the first deploy,
+in the jurisdiction of the `"jurisdiction"` line (wrangler 4.159 or later), and applies the
+migrations right after it. Creating it yourself, as above, lets you check where it is before anything
+is deployed.
 
 ## Set up the organization
 

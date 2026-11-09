@@ -34,23 +34,19 @@ Before 1.0.0 the same rules hold; 1.0.0 comes when both apps rely on the API as 
 Deployments made from the template get a Dependabot pull request within a week; merging it deploys
 the update, migrations first. Servers built by hand update with `npm update diserver && npm run deploy`.
 
-## To verify at the first public deploy
+## Checked at the first public deploy (9 November 2026)
 
-The button needs a public repository and the package on npm, so these are checked only then, with a
-test organization:
+A test organization deployed with the button, from the public repository and the package on npm:
 
-1. **Dependabot in the copy.** Cloudflare makes the `deploy/` subfolder the root of the new repository.
-   One report says the button keeps `.github/dependabot.yml` and drops workflow files (for a template
-   at a repository's root); nothing says whether `.github/` inside a subfolder is copied. Check that
-   the new repository has `.github/dependabot.yml` and that Dependabot runs there.
-   If it doesn't: move the template to its own repository, `tommasoseita/diserver-template`, kept in
-   sync from `deploy/` by this repository's CI, and point the button to it. A template at a
-   repository's root keeps `dependabot.yml`.
-2. **The EU jurisdiction.** Check that the button's database is in the EU (D1 › the database). If
-   the button creates the database itself, ignoring `jurisdiction`, the guide must send European
-   organizations to create the database first (dashboard: Data location › Specify jurisdiction › EU)
-   and put its id in `wrangler.jsonc`.
-3. **The lockfile.** Done for 0.5.0: `deploy/package-lock.json` pins what every new deployment
-   installs. Refresh it (`npm install --package-lock-only` in `deploy/`) when the template's
-   dependencies change.
+1. **Dependabot in the copy: yes.** Cloudflare makes the `deploy/` subfolder the root of the new
+   repository, `.github/` included: `.github/dependabot.yml` was there, and Dependabot opened its
+   first pull request a minute after the repository was created.
+2. **The EU jurisdiction: no.** The button creates the database itself, before the build, with no
+   jurisdiction (the region it picks is only a location hint), and ignores `"jurisdiction": "eu"`.
+   Its form can pick an existing database, so the guide sends European organizations to create the
+   database in the EU first ([setup.md](setup.md#where-the-data-lives)).
+3. **The lockfile: done** for 0.5.0. Refresh it (`npm install --package-lock-only` in `deploy/`)
+   when the template's dependencies change.
 
+Still open: the test server answered Cloudflare's error 1042 during a partial Cloudflare outage, so
+the end-to-end check of a deployed server (`/v2/setup`) is to be repeated.

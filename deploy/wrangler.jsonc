@@ -9,9 +9,12 @@
     {
       "binding": "DB",
       "database_name": "diserver",
-      // Created at the first deploy, in the European Union: data stays in the EU, and that can't
-      // be changed later. Outside Europe you can remove this line before the first deploy.
-      // To use a database you created yourself, put its "database_id" here instead.
+      // Where the data lives (docs/setup.md, "Where the data lives"):
+      // - the Deploy to Cloudflare button ignores this line and creates the database itself,
+      //   with no jurisdiction. In Europe, create the database in the EU first and pick it in
+      //   the button's form: its "database_id" then takes the place of this line;
+      // - deploying by hand without a "database_id", wrangler (4.159 or later) creates the
+      //   database at the first deploy in this jurisdiction.
       "jurisdiction": "eu",
       // The schema ships with the package, so updates bring their migrations.
       "migrations_dir": "node_modules/diserver/migrations"

@@ -26,16 +26,19 @@ relay, which adds the key and never writes the text anywhere.
 
 ## Quick start
 
-1. Click **Deploy to Cloudflare** above. Cloudflare copies the small [`deploy/`](deploy) template to
-   your GitHub account (the code comes from the `diserver` package), creates the Worker and its
-   database, and asks for two values:
+1. **Only in Europe:** in the Cloudflare dashboard, create the database first, with the European
+   Union as its jurisdiction: the button can't do it. Step by step:
+   [create the database in the EU](docs/setup.md#step-1-only-for-organizations-in-europe-create-the-database-in-the-eu).
+2. Click **Deploy to Cloudflare** above. Cloudflare copies the small [`deploy/`](deploy) template to
+   your GitHub account (the code comes from the `diserver` package), creates the Worker and, unless
+   you pick the database from step 1 under **Select D1 database**, a new database. It asks for two
+   values:
    - `SERVER_SECRET`: 32 or more random characters (`openssl rand -base64 36`). Keep a copy in your
      password manager.
    - `ORG_NAME`: your organization's name.
-2. Wait for the deploy to finish and note the Worker's address, e.g.
-   `https://diserver.acme.workers.dev`. The database is created in the European Union unless you
-   choose otherwise ([where the data lives](docs/setup.md#where-the-data-lives)).
-3. Set up the organization from the app:
+3. Wait for the deploy to finish and note the Worker's address, e.g.
+   `https://diserver.acme.workers.dev`.
+4. Set up the organization from the app:
    - **diMail**: Settings › Organization › Create an organization. Enter the address and the server
      secret; diMail uploads your Google client and, if you want, the AI key, and gives you the invite
      link.

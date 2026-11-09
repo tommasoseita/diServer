@@ -1,6 +1,8 @@
 // Deploys the server. Migrations run before the new code, so a request never meets a schema
-// older than the code expects. On the very first deploy the database doesn't exist yet:
-// `wrangler deploy` creates it (in the jurisdiction set in wrangler.jsonc), then the migrations run.
+// older than the code expects. Deploying by hand without a "database_id", the database doesn't
+// exist before the first deploy: `wrangler deploy` creates it (in the jurisdiction set in
+// wrangler.jsonc), then the migrations run. With the Deploy to Cloudflare button the database
+// already exists: the button creates it, or you pick one you created (docs/setup.md).
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 

@@ -22,9 +22,14 @@ The full guide: [Setting up an organization server](https://github.com/tommasose
 
 ## Where the data lives
 
-The database is created at the first deploy **in the European Union** (`"jurisdiction": "eu"` in
-`wrangler.jsonc`): it runs and stores its data only there. A jurisdiction can't be changed after the
-database exists. Outside Europe you may remove that line before the first deploy.
+The Deploy to Cloudflare button creates the database itself and **can't put it in the European
+Union**: its form offers only a location hint, which is a preference, not a guarantee. For an
+organization in Europe, create the database first with the European Union as its jurisdiction, then
+pick it under **Select D1 database** in the button's form. Step by step:
+[create the database in the EU](https://github.com/tommasoseita/diServer/blob/main/docs/setup.md#step-1-only-for-organizations-in-europe-create-the-database-in-the-eu).
+
+To see where your database is: Cloudflare dashboard, **Storage & databases › D1 SQLite Database ›**
+your database **› Settings › Jurisdiction**. A jurisdiction can't be added to an existing database.
 
 ## Updates
 

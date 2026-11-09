@@ -50,6 +50,7 @@ test organization:
    the button creates the database itself, ignoring `jurisdiction`, the guide must send European
    organizations to create the database first (dashboard: Data location › Specify jurisdiction › EU)
    and put its id in `wrangler.jsonc`.
-3. **The lockfile.** `deploy/package-lock.json` can only be generated once `diserver` is on npm:
-   add it then, so every deployment installs the same versions.
+3. **The lockfile.** Done for 0.5.0: `deploy/package-lock.json` pins what every new deployment
+   installs. Refresh it (`npm install --package-lock-only` in `deploy/`) when the template's
+   dependencies change.
 

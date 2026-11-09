@@ -1,0 +1,26 @@
+// Your organization's diServer. See https://github.com/tommasoseita/diServer/blob/main/docs/setup.md
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "diserver",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "diserver",
+      // Created at the first deploy, in the European Union: data stays in the EU, and that can't
+      // be changed later. Outside Europe you can remove this line before the first deploy.
+      // To use a database you created yourself, put its "database_id" here instead.
+      "jurisdiction": "eu",
+      // The schema ships with the package, so updates bring their migrations.
+      "migrations_dir": "node_modules/diserver/migrations"
+    }
+  ],
+  "vars": {
+    // Shown on invite pages and in the apps until an admin renames the organization.
+    "ORG_NAME": "My organization"
+    // Optional (see docs/setup.md): "MISTRAL_BASE_URL": "https://api.eu.mistral.ai"
+  },
+  "observability": { "enabled": true }
+}

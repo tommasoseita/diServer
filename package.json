@@ -1,0 +1,53 @@
+{
+  "name": "diserver",
+  "version": "0.5.0",
+  "description": "Organization server for diVoice and diMail: members, invites, configuration and keys, on Cloudflare Workers and D1.",
+  "keywords": [
+    "divoice",
+    "dimail",
+    "organization",
+    "cloudflare-workers",
+    "d1",
+    "hono"
+  ],
+  "homepage": "https://github.com/tommasoseita/diServer#readme",
+  "bugs": {
+    "url": "https://github.com/tommasoseita/diServer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tommasoseita/diServer.git"
+  },
+  "license": "MIT",
+  "author": "Tommaso Seita",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "migrations",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local --config wrangler.test.toml && wrangler dev --config wrangler.test.toml",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:template": "scripts/check-template.sh"
+  },
+  "dependencies": {
+    "hono": "4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.7",
+    "@cloudflare/workers-types": "5.20261023.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12",
+    "wrangler": "4.152.0"
+  }
+}

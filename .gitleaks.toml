@@ -1,0 +1,13 @@
+# gitleaks (https://github.com/gitleaks/gitleaks): the default rules, minus the four fake
+# credentials the tests use. Only these exact values are ignored: any other key is reported.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake credentials in the tests"
+regexes = [
+  '''test-secret-0123456789abcdef''',
+  '''GOCSPX-test-secret_123''',
+  '''mistral-key-0123456789abcdef''',
+  '''mk_test_0123456789abcdefghijklmnop''',
+]

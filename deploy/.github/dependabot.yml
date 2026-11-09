@@ -1,0 +1,12 @@
+# New versions of diServer arrive as pull requests; merging one deploys it, migrations included.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      diserver:
+        patterns: ["diserver"]
+      tooling:
+        patterns: ["wrangler", "typescript", "@cloudflare/*"]

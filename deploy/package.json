@@ -1,0 +1,42 @@
+{
+  "name": "my-diserver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An organization server for diVoice and diMail, on Cloudflare Workers and D1.",
+  "type": "module",
+  "scripts": {
+    "deploy": "node scripts/deploy.mjs",
+    "dev": "wrangler d1 migrations apply DB --local && wrangler dev",
+    "check": "tsc --noEmit && wrangler deploy --dry-run --outdir .wrangler/check"
+  },
+  "dependencies": {
+    "diserver": "^0.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261109.1",
+    "typescript": "5.9.3",
+    "wrangler": "4.159.0"
+  },
+  "cloudflare": {
+    "label": "diServer: organization server for diVoice and diMail",
+    "products": [
+      "Workers",
+      "D1"
+    ],
+    "categories": [
+      "storage"
+    ],
+    "docs_url": "https://github.com/tommasoseita/diServer/blob/main/docs/setup.md",
+    "bindings": {
+      "SERVER_SECRET": {
+        "description": "At least 32 random characters. It encrypts the keys your admins save and proves you own the server when you set up the organization from diMail or diVoice. Run `openssl rand -base64 36`, or use the one your app generated. **Keep a copy in your password manager.**"
+      },
+      "ORG_NAME": {
+        "description": "Your organization's name, shown on invite pages until an admin renames it in the app."
+      },
+      "DB": {
+        "description": "The organization's database: members, invites, settings and encrypted keys. Never any email or dictated text."
+      }
+    }
+  }
+}

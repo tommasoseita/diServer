@@ -37,7 +37,8 @@ relay, which adds the key and never writes the text anywhere.
      password manager.
    - `ORG_NAME`: your organization's name.
 3. Wait for the deploy to finish and note the Worker's address, e.g.
-   `https://diserver.acme.workers.dev`.
+   `https://diserver.acme.workers.dev`. A new Worker's address can take up to an hour to answer
+   (until then Cloudflare shows "error code: 1042").
 4. Set up the organization from the app:
    - **diMail**: Settings › Organization › Create an organization. Enter the address and the server
      secret; diMail uploads your Google client and, if you want, the AI key, and gives you the invite

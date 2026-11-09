@@ -8,6 +8,12 @@ which diServer version they need at least, and never set or bump it. See [docs/r
 - `/dimail/download` no longer answers 502. While diMail isn't set up on the server it goes back to
   `/dimail` without fetching anything; if diMail's disk image can't be fetched, back to `/dimail`
   with a notice. diVoice's invite downloads are unchanged.
+- Template: Dependabot no longer proposes major versions of the build tools (wrangler, TypeScript,
+  Cloudflare's types), which can change how the server is built; it still proposes their minor and
+  patch versions, and every version of `diserver`. Deployments made before keep their
+  `.github/dependabot.yml`: copy the new one from `deploy/` if you want the same.
+- Docs: a new Worker's `workers.dev` address can take up to an hour to answer; until then Cloudflare
+  shows "error code: 1042".
 - Docs: the Deploy to Cloudflare button doesn't put the database in the EU. It creates the database
   itself, with no jurisdiction, and ignores the template's `"jurisdiction": "eu"`. Organizations in
   Europe create the database first and pick it in the button's form:

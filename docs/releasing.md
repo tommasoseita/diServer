@@ -48,5 +48,7 @@ A test organization deployed with the button, from the public repository and the
 3. **The lockfile: done** for 0.5.0. Refresh it (`npm install --package-lock-only` in `deploy/`)
    when the template's dependencies change.
 
-Still open: the test server answered Cloudflare's error 1042 during a partial Cloudflare outage, so
-the end-to-end check of a deployed server (`/v2/setup`) is to be repeated.
+4. **The deployed server: yes**, after a wait. For about 45 minutes the new Worker's `workers.dev`
+   address answered Cloudflare's "error code: 1042" (so did a minimal Worker created to compare);
+   then `/v2/setup` answered `{"claimed":false,"secretConfigured":true}`. The guide now says a new
+   address can take up to an hour. The test Workers and database were deleted afterwards.

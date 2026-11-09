@@ -13,6 +13,8 @@ repository only holds your deployment's configuration.
 ## After deploying
 
 1. Copy your server's address from Cloudflare, for example `https://diserver.acme.workers.dev`.
+   A new Worker's address can take up to an hour to answer: until then Cloudflare shows
+   "error code: 1042".
 2. Set up the organization from the app:
    - **diMail**: Settings › Organization › Create an organization, with the address and `SERVER_SECRET`;
    - **diVoice**: finish **Create an organization** with the address, your name and email.
@@ -35,7 +37,8 @@ your database **› Settings › Jurisdiction**. A jurisdiction can't be added t
 
 Dependabot opens a pull request when a new version of `diserver` is published. Read the
 [changelog](https://github.com/tommasoseita/diServer/blob/main/CHANGELOG.md), then merge it: Cloudflare
-deploys the update, migrations first.
+deploys the update, migrations first. The build tools (wrangler, TypeScript, Cloudflare's types) get
+minor and patch updates only; their major versions come with a new diServer template.
 
 ## Configuration
 

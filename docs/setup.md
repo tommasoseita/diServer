@@ -76,8 +76,9 @@ jurisdiction. So:
    address, for example `https://diserver.acme.workers.dev`. If Cloudflare first asks you to choose a
    `workers.dev` subdomain, pick a short name: it becomes part of the address.
 10. Check the server: open `https://<your address>/v2/setup` in the browser. It answers
-    `{"claimed":false,"secretConfigured":true}`. Right after the first deploy the address may take a
-    few minutes to answer.
+    `{"claimed":false,"secretConfigured":true}`. The `workers.dev` address of a new Worker can take
+    **up to an hour** to answer: until then Cloudflare shows a page with "error code: 1042". That's
+    normal, nothing is wrong with your server: try again later.
 11. In Europe, check the database once more: **Storage & databases › D1 SQLite Database › diserver ›
     Settings**. **Jurisdiction** shows the European Union.
 

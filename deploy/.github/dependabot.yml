@@ -5,8 +5,19 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    # The tooling (wrangler, TypeScript, Cloudflare's types) gets minor and patch updates only:
+    # a major version can change how the server is built, so it comes with a new diServer
+    # template instead of a pull request here.
+    ignore:
+      - dependency-name: "wrangler"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@cloudflare/*"
+        update-types: ["version-update:semver-major"]
     groups:
       diserver:
         patterns: ["diserver"]
       tooling:
         patterns: ["wrangler", "typescript", "@cloudflare/*"]
+        update-types: ["minor", "patch"]

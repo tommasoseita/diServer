@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { clearAuthCache } from "../src/auth";
 import type { Env } from "../src/env";
 import { setGoogleKeyFetcher, verifyIdToken } from "../src/google";
-import { appDownload, inviteFileName } from "../src/pages";
+import { appDownload, inviteFileName, orgDownload } from "../src/pages";
 import { call, createUser, resetOrg } from "./helpers";
 
 const CLIENT = { clientId: "123456789012-abcdefgh12345678.apps.googleusercontent.com", clientSecret: "GOCSPX-test-secret_123" };
@@ -246,6 +246,33 @@ describe("pages", () => {
     expect(org).toContain("dimail://join?server=");
     expect(inviteFileName("Acme", "team.example.com", "abc", "dimail")).toBe("diMail (Acme) [team.example.com abc].dmg");
     expect(inviteFileName("Acme", "team.example.com", "", "dimail")).toBe("diMail (Acme) [team.example.com].dmg");
+  });
+
+  it("send /dimail/download back to /dimail instead of failing", async () => {
+    // diMail not set up: back to the page, nothing fetched.
+    const unconfigured = await call("/dimail/download");
+    expect(unconfigured.status).toBe(302);
+    expect(unconfigured.headers.get("Location")).toBe("/dimail");
+
+    let calls = 0;
+    const missing = (async () => {
+      calls++;
+      return new Response("not found", { status: 404 });
+    }) as unknown as typeof fetch;
+    const gone = await orgDownload(env as unknown as Env, "Acme", "team.example.com", true, missing);
+    expect(calls).toBe(1);
+    expect(gone.status).toBe(302);
+    expect(gone.headers.get("Location")).toBe("/dimail?download=unavailable");
+
+    const present = (async () => new Response(new Uint8Array([7]), { headers: { "Content-Length": "1" } })) as unknown as typeof fetch;
+    const served = await orgDownload(env as unknown as Env, "Acme", "team.example.com", true, present);
+    expect(served.status).toBe(200);
+    expect(served.headers.get("Content-Disposition")).toContain("diMail (Acme) [team.example.com].dmg");
+
+    await setup();
+    const page = await (await call("/dimail?download=unavailable", { headers: { "Accept-Language": "it" } })).text();
+    expect(page).toContain("Il download non è disponibile in questo momento.");
+    expect(await (await call("/dimail")).text()).not.toContain("download isn't available");
   });
 
   it("download diMail from its release under the invite's name", async () => {

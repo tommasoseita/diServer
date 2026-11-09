@@ -8,7 +8,7 @@ import { createInvite, join, listInvites, normalizeEmail, normalizeName, revokeI
 import { keyStatus, removeProviderKey, saveProviderKey, serverSecret } from "./keys";
 import { hasAdmin, hideFromTeam, listMembers, removeMember, setHideFromTeam, setRole } from "./members";
 import { adminMail, joinMail, loadMail, mailConfig, publicOrg, removeAiKey, replaceAiKey, replaceGoogleClient, setupMail, updateAdminMail } from "./mail";
-import { appDownload, inviteDownload, inviteFileName, invitePage, orgPage, serveUpdate } from "./pages";
+import { inviteDownload, invitePage, orgDownload, orgPage, serveUpdate } from "./pages";
 import { batchTranscribe, openRealtime } from "./providers/mistral";
 import { acceptRelay, relayDeps } from "./relay";
 import { loadSettings, SAMPLE_RATES, updateSettings, type Provider } from "./settings";
@@ -80,12 +80,13 @@ app.get("/updates/:file", (c) => serveUpdate(c.env, c.req.param("file")));
 app.get("/dimail", async (c) => {
   const [settings, mail] = await Promise.all([loadSettings(c.env), loadMail(c.env)]);
   const configured = !!mail.googleClientId;
-  return orgPage(settings.name, origin(c), c.req.header("Accept-Language") ?? null, { configured, domain: mail.domain, autoJoin: mail.autoJoin });
+  const notice = c.req.query("download") === "unavailable" ? "download-unavailable" : null;
+  return orgPage(settings.name, origin(c), c.req.header("Accept-Language") ?? null, { configured, domain: mail.domain, autoJoin: mail.autoJoin }, notice);
 });
 
 app.get("/dimail/download", async (c) => {
-  const settings = await loadSettings(c.env);
-  return appDownload(c.env, "dimail", inviteFileName(settings.name, new URL(c.req.url).host, "", "dimail"));
+  const [settings, mail] = await Promise.all([loadSettings(c.env), loadMail(c.env)]);
+  return orgDownload(c.env, settings.name, new URL(c.req.url).host, !!mail.googleClientId);
 });
 
 /** Before signing in from the organization link: the organization and its Google client. */

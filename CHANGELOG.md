@@ -3,8 +3,11 @@
 diServer's versions are decided here, and only here: diVoice and diMail say in their release notes
 which diServer version they need at least, and never set or bump it. See [docs/releasing.md](docs/releasing.md).
 
-## Unreleased
+## 0.5.1 (not published yet)
 
+- `/dimail/download` no longer answers 502. While diMail isn't set up on the server it goes back to
+  `/dimail` without fetching anything; if diMail's disk image can't be fetched, back to `/dimail`
+  with a notice. diVoice's invite downloads are unchanged.
 - Docs: the Deploy to Cloudflare button doesn't put the database in the EU. It creates the database
   itself, with no jurisdiction, and ignores the template's `"jurisdiction": "eu"`. Organizations in
   Europe create the database first and pick it in the button's form:
@@ -24,7 +27,7 @@ which diServer version they need at least, and never set or bump it. See [docs/r
 - **`SERVER_SECRET`** replaces `DIVOICE_SECRET`, which keeps working: existing servers change nothing.
 - **Deploy to Cloudflare**: the `deploy/` template, which takes code and migrations from this
   package, with Dependabot for updates. When wrangler creates its database (deploying by hand),
-  it does so in the EU jurisdiction (wrangler 4.159 or later); the button doesn't (see Unreleased).
+  it does so in the EU jurisdiction (wrangler 4.159 or later); the button doesn't (see 0.5.1).
   Its deploy script migrates before deploying, except on the very first deploy, when the database
   doesn't exist yet.
 - Migration `0003_mail.sql` only adds tables and columns. For diVoice nothing changes: same endpoints,

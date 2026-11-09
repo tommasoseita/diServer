@@ -77,7 +77,7 @@ audience = the organization's client, expiry, verified email, `hd` for the domai
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/dimail` | The organization page: download and "open diMail" (`dimail://join?server=…`) |
-| `GET` | `/dimail/download` | diMail's disk image, named `diMail (Org) [host].dmg` |
+| `GET` | `/dimail/download` | diMail's disk image, named `diMail (Org) [host].dmg`. Back to `/dimail` while diMail isn't set up, and to `/dimail?download=unavailable` (a notice on the page) if the image can't be fetched |
 | `GET` | `/v2/mail/org` | `{org: {name, server, domain, autoJoin}, google: {clientId, clientSecret}}`; 409 until diMail is set up |
 | `GET` | `/v2/mail/invites/:code` | The same, plus `inviter`, `kind`, `email` (personal invites), `expiresAt` |
 | `POST` | `/v2/mail/join` | `{idToken, code?}` → `{token, member, org}` (see below) |

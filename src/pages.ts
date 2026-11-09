@@ -95,6 +95,7 @@ const ORG_STRINGS = {
       "Click “Sign in with Google” with your work account.",
     ],
     unavailable: "diMail isn't set up on this server yet. Ask your admin.",
+    downloadUnavailable: "The download isn't available right now. Try again in a few minutes, or ask your admin.",
   },
   it: {
     title: (org: string) => `${org} su diMail`,
@@ -107,6 +108,7 @@ const ORG_STRINGS = {
       "Premi «Accedi con Google» con l'account di lavoro.",
     ],
     unavailable: "diMail non è ancora configurato su questo server. Chiedi all'amministratore.",
+    downloadUnavailable: "Il download non è disponibile in questo momento. Riprova tra qualche minuto o chiedi all'amministratore.",
   },
 };
 
@@ -235,12 +237,31 @@ export async function appDownload(env: Env, app: App, fileName: string, fetchImp
   return new Response(upstream.body, { headers });
 }
 
+/**
+ * `/dimail/download`: diMail's disk image, named after the organization. While diMail isn't set up
+ * on this server it goes back to `/dimail` without fetching anything; if the image can't be fetched,
+ * back to `/dimail` with a notice, instead of an error page.
+ */
+export async function orgDownload(
+  env: Env,
+  orgName: string,
+  host: string,
+  configured: boolean,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Response> {
+  const back = (location: string) => new Response(null, { status: 302, headers: { Location: location, "Cache-Control": "no-store" } });
+  if (!configured) return back("/dimail");
+  const response = await appDownload(env, "dimail", inviteFileName(orgName, host, "", "dimail"), fetchImpl);
+  return response.ok ? response : back("/dimail?download=unavailable");
+}
+
 /** `/dimail`: the organization's permanent link for diMail. */
 export function orgPage(
   orgName: string,
   origin: string,
   acceptLanguage: string | null,
   mail: { configured: boolean; domain: string | null; autoJoin: boolean },
+  notice: "download-unavailable" | null = null,
 ): Response {
   const language = pageLanguage(acceptLanguage);
   const t = ORG_STRINGS[language];
@@ -251,7 +272,7 @@ export function orgPage(
 <h1>${escape(t.title(orgName))}</h1>
 <p>${escape(t.intro(orgName))}</p>
 <p class="muted">${escape(mail.autoJoin && mail.domain ? t.domain(mail.domain) : t.members)}</p>
-<a class="button primary" href="/dimail/download">${escape(d.download)}</a>
+${notice === "download-unavailable" ? `<p><strong>${escape(t.downloadUnavailable)}</strong></p>\n` : ""}<a class="button primary" href="/dimail/download">${escape(d.download)}</a>
 <a class="button secondary" href="${escape(join)}">${escape(d.open)}</a>
 <h2>${escape(d.stepsTitle)}</h2>
 <ol>${t.steps.map((s) => `<li>${escape(s)}</li>`).join("")}</ol>

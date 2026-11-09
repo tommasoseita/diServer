@@ -1,6 +1,6 @@
 {
   "name": "diserver",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Organization server for diVoice and diMail: members, invites, configuration and keys, on Cloudflare Workers and D1.",
   "keywords": [
     "divoice",

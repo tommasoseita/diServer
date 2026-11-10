@@ -1,13 +1,19 @@
 import type { Env } from "./env";
 import { HttpError } from "./errors";
 
+/** Chat providers (cleanup and Scribe). */
 export type Provider = "mistral" | "openai";
+/** Every provider the server holds a key for: the chat ones, and ElevenLabs, which only transcribes. */
+export type AnyProvider = Provider | "elevenlabs";
+export type TranscriptionProvider = AnyProvider;
+export const KEY_PROVIDERS: AnyProvider[] = ["mistral", "openai", "elevenlabs"];
+export const PROVIDER_NAMES: Record<AnyProvider, string> = { mistral: "Mistral", openai: "OpenAI", elevenlabs: "ElevenLabs" };
 export type TranscriptionMode = "realtime" | "batch" | "hybrid";
 export type ChatRole = "cleanup" | "scribe";
 
 /** Same JSON as the app's PipelineSettings, so the app decodes it directly. */
 export interface TranscriptionSettings {
-  provider: Provider;
+  provider: TranscriptionProvider;
   mode: TranscriptionMode;
   realtimeModel: string;
   batchModel: string;
@@ -42,10 +48,10 @@ export interface OrgSettings {
 export const PROVIDERS: Provider[] = ["mistral", "openai"];
 
 /** PCM sample rate each provider's streaming transcription expects. */
-export const SAMPLE_RATES: Record<Provider, number> = { mistral: 16_000, openai: 24_000 };
+export const SAMPLE_RATES: Record<TranscriptionProvider, number> = { mistral: 16_000, openai: 24_000, elevenlabs: 16_000 };
 
-/** Providers whose transcription this server can run (the chat relay works with all). */
-export const SERVER_TRANSCRIPTION: Provider[] = ["mistral"];
+/** Providers whose transcription this server can run (the chat relay works with Mistral and OpenAI). */
+export const SERVER_TRANSCRIPTION: TranscriptionProvider[] = ["mistral", "elevenlabs"];
 
 export const DEFAULT_PIPELINE: PipelineSettings = {
   transcription: {
@@ -72,6 +78,11 @@ function object(value: unknown, label: string): Record<string, unknown> {
 function provider(value: unknown, label: string): Provider {
   if (value === "mistral" || value === "openai") return value;
   throw new HttpError(400, `${label}: provider must be "mistral" or "openai"`);
+}
+
+function transcriptionProvider(value: unknown, label: string): TranscriptionProvider {
+  if (value === "mistral" || value === "openai" || value === "elevenlabs") return value;
+  throw new HttpError(400, `${label}: provider must be "mistral", "openai" or "elevenlabs"`);
 }
 
 function model(value: unknown, label: string): string {
@@ -107,9 +118,9 @@ function chat(value: unknown, label: string): ChatSettings {
 export function parsePipeline(value: unknown): PipelineSettings {
   const o = object(value, "pipeline");
   const t = object(o.transcription, "transcription");
-  const transcriptionProvider = provider(t.provider, "transcription");
-  if (!SERVER_TRANSCRIPTION.includes(transcriptionProvider)) {
-    throw new HttpError(400, `transcription: ${transcriptionProvider} isn't available through the server yet`);
+  const transcriber = transcriptionProvider(t.provider, "transcription");
+  if (!SERVER_TRANSCRIPTION.includes(transcriber)) {
+    throw new HttpError(400, `transcription: ${transcriber} isn't available through the server yet`);
   }
   const mode = t.mode;
   if (mode !== "realtime" && mode !== "batch" && mode !== "hybrid") {
@@ -117,7 +128,7 @@ export function parsePipeline(value: unknown): PipelineSettings {
   }
   return {
     transcription: {
-      provider: transcriptionProvider,
+      provider: transcriber,
       mode,
       realtimeModel: model(t.realtimeModel, "transcription"),
       batchModel: model(t.batchModel, "transcription"),

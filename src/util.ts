@@ -74,7 +74,9 @@ export function errorMessage(err: unknown): string {
 
 /** Keys and bearer tokens, even masked ones, never reach the client or the logs. */
 export function redactSecrets(text: string): string {
-  return text.replace(/\bsk-[A-Za-z0-9_*\-]{6,}|\bBearer\s+[^\s"']+/g, "[key]");
+  return text
+    .replace(/\bsk[-_][A-Za-z0-9_*\-]{6,}|\bBearer\s+[^\s"']+/g, "[key]")
+    .replace(/(xi-api-key["']?\s*[:=]\s*["']?)[^\s"',}]+/gi, "$1[key]");
 }
 
 export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {

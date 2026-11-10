@@ -62,6 +62,7 @@ describe("settings", () => {
     expect(settings.keys).toEqual([
       { provider: "mistral", source: null, updatedAt: null },
       { provider: "openai", source: null, updatedAt: null },
+      { provider: "elevenlabs", source: null, updatedAt: null },
     ]);
 
     const { token: member } = await createUser("member");
@@ -82,6 +83,46 @@ describe("settings", () => {
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error: string }).error).toContain("isn't available through the server yet");
     expect((await call("/v2/admin/settings", { token, method: "PATCH", json: { name: "" } })).status).toBe(400);
+  });
+});
+
+describe("ElevenLabs", () => {
+  it("transcribes when the admin chooses it, with its own key, listed with the others", async () => {
+    const { token } = await createUser("admin");
+    const pipeline = structuredClone(DEFAULT_PIPELINE) as any;
+    pipeline.transcription = { ...pipeline.transcription, provider: "elevenlabs", realtimeModel: "scribe_v2_realtime", batchModel: "scribe_v2" };
+    const saved = await call("/v2/admin/settings", { token, method: "PATCH", json: { pipeline } });
+    expect(saved.status).toBe(200);
+    expect(((await saved.json()) as Record<string, any>).pipeline.transcription).toMatchObject({ provider: "elevenlabs", batchModel: "scribe_v2" });
+
+    const { token: member } = await createUser("member");
+    const me = (await (await call("/v2/me", { token: member })).json()) as Record<string, any>;
+    expect(me.sampleRate).toBe(16_000);
+
+    // A chat provider it isn't.
+    const chat = structuredClone(DEFAULT_PIPELINE) as any;
+    chat.cleanup.provider = "elevenlabs";
+    expect((await call("/v2/admin/settings", { token, method: "PATCH", json: { pipeline: chat } })).status).toBe(400);
+
+    const key = "sk_0123456789abcdef0123456789abcdef0123456789abcdef";
+    const put = await call("/v2/admin/keys/elevenlabs", { token, method: "PUT", json: { key } });
+    expect(put.status).toBe(200);
+    const text = await put.text();
+    expect(text).not.toContain(key);
+    expect(JSON.parse(text).keys).toContainEqual(expect.objectContaining({ provider: "elevenlabs", source: "admin" }));
+    // In `secrets` (provider_keys only accepts Mistral and OpenAI), encrypted.
+    const row = await env.DB.prepare("SELECT ciphertext FROM secrets WHERE name = 'provider_key.elevenlabs'").first<{ ciphertext: string }>();
+    expect(row!.ciphertext).not.toContain("sk_0123");
+    clearKeyCache();
+    expect(await providerKey(env as unknown as Env, "elevenlabs")).toBe(key);
+
+    expect((await call("/v2/admin/keys/elevenlabs", { token, method: "DELETE" })).status).toBe(200);
+    clearKeyCache();
+    expect(await providerKey(env as unknown as Env, "elevenlabs")).toBeUndefined();
+    clearKeyCache();
+    expect(await providerKey({ ...(env as unknown as Env), ELEVENLABS_API_KEY: "sk_from_the_worker_secret_0123456789" }, "elevenlabs")).toBe(
+      "sk_from_the_worker_secret_0123456789",
+    );
   });
 });
 

@@ -3,7 +3,24 @@
 diServer's versions are decided here, and only here: diVoice and diMail say in their release notes
 which diServer version they need at least, and never set or bump it. See [docs/releasing.md](docs/releasing.md).
 
-## 0.5.1 (not published yet)
+## 0.6.0 (not published yet)
+
+diVoice 0.5.0 needs this version.
+
+- **ElevenLabs transcription.** `pipeline.transcription.provider` can be `"elevenlabs"` (models
+  `scribe_v2_realtime` and `scribe_v2`, 16 kHz audio). Streaming over ElevenLabs' realtime WebSocket
+  with a manual commit at the end; the batch transcription uploads the raw PCM. The dictionary goes
+  in `keyterms` (50 terms of up to 20 characters while streaming, 100 of up to 50 for the batch).
+  Admins save its key like the others (`PUT /v2/admin/keys/elevenlabs`); it's stored encrypted in
+  `secrets`, so no migration is needed. `/v2/admin/settings` now lists `elevenlabs` among the keys,
+  and the apps show it only when it's listed. `ELEVENLABS_API_KEY` and `ELEVENLABS_BASE_URL` work like
+  their Mistral and OpenAI counterparts. ElevenLabs keys (`sk_…`) and `xi-api-key` headers are
+  redacted from errors and logs.
+- **Statistics count Scribe too**, not only dictations. A dictation with no local day (older apps, or
+  a stats message that never arrived) counts on its UTC day, which brings past ones back into the
+  totals and the leaderboard.
+
+From 0.5.1, never published on its own:
 
 - `/dimail/download` no longer answers 502. While diMail isn't set up on the server it goes back to
   `/dimail` without fetching anything; if diMail's disk image can't be fetched, back to `/dimail`
@@ -33,7 +50,7 @@ which diServer version they need at least, and never set or bump it. See [docs/r
 - **`SERVER_SECRET`** replaces `DIVOICE_SECRET`, which keeps working: existing servers change nothing.
 - **Deploy to Cloudflare**: the `deploy/` template, which takes code and migrations from this
   package, with Dependabot for updates. When wrangler creates its database (deploying by hand),
-  it does so in the EU jurisdiction (wrangler 4.159 or later); the button doesn't (see 0.5.1).
+  it does so in the EU jurisdiction (wrangler 4.159 or later); the button doesn't (see 0.6.0).
   Its deploy script migrates before deploying, except on the very first deploy, when the database
   doesn't exist yet.
 - Migration `0003_mail.sql` only adds tables and columns. For diVoice nothing changes: same endpoints,

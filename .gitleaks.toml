@@ -1,4 +1,4 @@
-# gitleaks (https://github.com/gitleaks/gitleaks): the default rules, minus the four fake
+# gitleaks (https://github.com/gitleaks/gitleaks): the default rules, minus the fake
 # credentials the tests use. Only these exact values are ignored: any other key is reported.
 [extend]
 useDefault = true
@@ -10,4 +10,6 @@ regexes = [
   '''GOCSPX-test-secret_123''',
   '''mistral-key-0123456789abcdef''',
   '''mk_test_0123456789abcdefghijklmnop''',
+  '''sk_test_elevenlabs_0123456789''',
+  '''sk_0123456789abcdef0123456789abcdef0123456789abcdef''',
 ]

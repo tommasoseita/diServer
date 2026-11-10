@@ -9,9 +9,11 @@ export interface Env {
   /** Provider keys set as Worker secrets, used when the admin hasn't saved one in the app. */
   MISTRAL_API_KEY?: string;
   OPENAI_API_KEY?: string;
+  ELEVENLABS_API_KEY?: string;
   /** Provider endpoints (tests, or Mistral's EU endpoint https://api.eu.mistral.ai). */
   MISTRAL_BASE_URL?: string;
   OPENAI_BASE_URL?: string;
+  ELEVENLABS_BASE_URL?: string;
   /** Where "Download diVoice" goes when the server hosts no build. */
   DOWNLOAD_URL?: string;
   /** Where "Download diMail" goes (default: the latest diMail release on GitHub). */

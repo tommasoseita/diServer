@@ -9,9 +9,9 @@ import { keyStatus, removeProviderKey, saveProviderKey, serverSecret } from "./k
 import { hasAdmin, hideFromTeam, listMembers, removeMember, setHideFromTeam, setRole } from "./members";
 import { adminMail, joinMail, loadMail, mailConfig, publicOrg, removeAiKey, replaceAiKey, replaceGoogleClient, setupMail, updateAdminMail } from "./mail";
 import { inviteDownload, invitePage, orgDownload, orgPage, serveUpdate } from "./pages";
-import { batchTranscribe, openRealtime } from "./providers/mistral";
+import { batchTranscribe, openRealtime } from "./providers/transcription";
 import { acceptRelay, relayDeps } from "./relay";
-import { loadSettings, SAMPLE_RATES, updateSettings, type Provider } from "./settings";
+import { loadSettings, SAMPLE_RATES, updateSettings, type AnyProvider } from "./settings";
 import { myStats, parsePeriod, recordStats, teamStats } from "./stats";
 import { safeEqual } from "./util";
 
@@ -43,8 +43,8 @@ function inviteJSON(c: Context<AppEnv>, invite: Invite) {
   return { ...invite, url: `${origin(c)}/i/${invite.code}` };
 }
 
-function provider(value: string): Provider {
-  if (value === "mistral" || value === "openai") return value;
+function provider(value: string): AnyProvider {
+  if (value === "mistral" || value === "openai" || value === "elevenlabs") return value;
   throw new HttpError(404, "unknown provider");
 }
 

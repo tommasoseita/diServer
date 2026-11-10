@@ -2,12 +2,14 @@ import type { Env, User } from "./env";
 import { providerKey } from "./keys";
 import { providerBaseUrl, relayChat, sanitizeChatBody, type ChatRelayResult } from "./providers/chat";
 import type { BatchOptions, RealtimeOptions, StreamingTranscriber, TranscriptResult } from "./providers/mistral";
-import { SAMPLE_RATES, type ChatRole, type OrgSettings } from "./settings";
+import { realtimeFinishTimeoutMs } from "./providers/elevenlabs";
+import { PROVIDER_NAMES, SAMPLE_RATES, type AnyProvider, type ChatRole, type OrgSettings } from "./settings";
 import { cleanTimings, label, type StatsInput } from "./stats";
 import { concatBytes, errorMessage, isDay, pcmDurationMs, pcmToWav, redactSecrets, wordCount } from "./util";
 
 /**
- * One dictation through the organization's server, on one WebSocket.
+ * One dictation through the organization's server, on one WebSocket. Transcription by Mistral
+ * or ElevenLabs (providers/transcription.ts); cleanup and Scribe by Mistral or OpenAI.
  *
  * The app keeps the prompts and the logic; the server holds the keys and the models,
  * keeps a copy of the audio (so the batch transcription at release starts here, with no
@@ -36,8 +38,8 @@ export interface SocketLike {
 export interface RelayDeps {
   now(): number;
   settings(): Promise<OrgSettings>;
-  key(provider: "mistral" | "openai"): Promise<string | undefined>;
-  baseUrl(provider: "mistral" | "openai"): string;
+  key(provider: AnyProvider): Promise<string | undefined>;
+  baseUrl(provider: AnyProvider): string;
   openRealtime(options: RealtimeOptions): StreamingTranscriber;
   batchTranscribe(options: BatchOptions): Promise<TranscriptResult>;
   fetchImpl?: typeof fetch;
@@ -213,7 +215,7 @@ export class RelaySession {
       throw new ProtocolError("sample_rate", `the organization's transcription needs ${this.sampleRate} Hz audio: update diVoice`);
     }
     const key = await this.deps.key(transcription.provider);
-    if (!key) throw new ProtocolError("no_key", `your organization has no ${transcription.provider === "mistral" ? "Mistral" : "OpenAI"} key yet: ask your admin`);
+    if (!key) throw new ProtocolError("no_key", `your organization has no ${PROVIDER_NAMES[transcription.provider]} key yet: ask your admin`);
     this.apiKey = key;
     // While the user speaks: the batch transcription and the cleanup at release find the
     // connection to the provider already open.
@@ -222,6 +224,7 @@ export class RelaySession {
 
     if (transcription.mode !== "batch") {
       this.transcriber = this.deps.openRealtime({
+        provider: transcription.provider,
         baseUrl: this.deps.baseUrl(transcription.provider),
         apiKey: key,
         model: transcription.realtimeModel,
@@ -250,11 +253,16 @@ export class RelaySession {
 
   private batch(audioMs: number): Promise<TranscriptResult> {
     const transcription = this.settings!.pipeline.transcription;
+    const pcm = concatBytes(this.chunks, this.bytes);
     return this.deps.batchTranscribe({
+      provider: transcription.provider,
       baseUrl: this.deps.baseUrl(transcription.provider),
       apiKey: this.apiKey,
       model: transcription.batchModel,
-      wav: pcmToWav(concatBytes(this.chunks, this.bytes), this.sampleRate),
+      pcm,
+      sampleRate: this.sampleRate,
+      // ElevenLabs takes the raw PCM; the others a WAV file.
+      wav: transcription.provider === "elevenlabs" ? undefined : pcmToWav(pcm, this.sampleRate),
       language: this.language,
       contextBias: this.vocabulary,
       timeoutMs: 20_000 + audioMs / 4,
@@ -266,9 +274,10 @@ export class RelaySession {
   private async transcribe(audioMs: number): Promise<{ result: TranscriptResult; path: TranscriptionPath; warning?: string }> {
     const transcription = this.settings!.pipeline.transcription;
     const transcriber = this.transcriber;
+    const doneTimeout = transcription.provider === "elevenlabs" ? realtimeFinishTimeoutMs(audioMs) : REALTIME_DONE_TIMEOUT_MS;
 
     if (!transcriber || (transcription.mode === "hybrid" && audioMs <= transcription.batchMaxAudioMs)) {
-      const backup = transcriber?.finish(REALTIME_DONE_TIMEOUT_MS);
+      const backup = transcriber?.finish(doneTimeout);
       backup?.catch(() => undefined);
       try {
         const result = await this.batch(audioMs);
@@ -289,7 +298,7 @@ export class RelaySession {
 
     let warning: string | undefined;
     try {
-      const result = await transcriber.finish(REALTIME_DONE_TIMEOUT_MS);
+      const result = await transcriber.finish(doneTimeout);
       if (transcriber.connectMs !== undefined) this.timings.upstreamConnectMs = transcriber.connectMs;
       if (result.text.trim() || audioMs < 1_500) return { result, path: "realtime" };
       warning = "realtime: empty transcript";
@@ -359,7 +368,7 @@ export class RelaySession {
       const key = await this.deps.key(settings.provider);
       keyMs = this.deps.now() - keyStarted;
       if (!key) {
-        this.send({ type: "chat.error", id, status: 503, body: `your organization has no ${settings.provider === "mistral" ? "Mistral" : "OpenAI"} key yet: ask your admin` });
+        this.send({ type: "chat.error", id, status: 503, body: `your organization has no ${PROVIDER_NAMES[settings.provider]} key yet: ask your admin` });
         return;
       }
       const body = sanitizeChatBody(message.body, settings, role);

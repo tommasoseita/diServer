@@ -1,4 +1,5 @@
-import { bytesToBase64, errorMessage, redactSecrets, withTimeout } from "../util";
+import type { TranscriptionProvider } from "../settings";
+import { bytesToBase64, errorMessage, pcmToWav, redactSecrets, withTimeout } from "../util";
 
 /**
  * Mistral transcription: streaming (Voxtral realtime, WebSocket) and batch (one file).
@@ -50,6 +51,8 @@ export interface StreamingTranscriber {
 }
 
 export interface RealtimeOptions {
+  /** Which provider's protocol (providers/transcription.ts picks it); Mistral when absent. */
+  provider?: TranscriptionProvider;
   baseUrl: string;
   apiKey: string;
   model: string;
@@ -215,10 +218,14 @@ class RealtimeSession implements StreamingTranscriber {
 }
 
 export interface BatchOptions {
+  provider?: TranscriptionProvider;
   baseUrl: string;
   apiKey: string;
   model: string;
-  wav: Uint8Array;
+  /** The audio: a WAV file, or raw PCM s16le mono at `sampleRate` (the file is made from it if needed). */
+  wav?: Uint8Array;
+  pcm?: Uint8Array;
+  sampleRate?: number;
   language?: string;
   contextBias: string[];
   timeoutMs?: number;
@@ -229,7 +236,8 @@ export interface BatchOptions {
 export async function batchTranscribe(options: BatchOptions): Promise<TranscriptResult> {
   const form = new FormData();
   form.append("model", options.model);
-  form.append("file", new Blob([options.wav as unknown as ArrayBuffer], { type: "audio/wav" }), "audio.wav");
+  const wav = options.wav ?? pcmToWav(options.pcm ?? new Uint8Array(0), options.sampleRate ?? 16_000);
+  form.append("file", new Blob([wav as unknown as ArrayBuffer], { type: "audio/wav" }), "audio.wav");
   if (options.language) form.append("language", options.language);
   for (const term of options.contextBias) form.append("context_bias", term);
 

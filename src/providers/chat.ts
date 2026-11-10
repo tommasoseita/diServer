@@ -1,6 +1,6 @@
 import type { Env } from "../env";
 import { HttpError } from "../errors";
-import type { ChatRole, ChatSettings, Provider } from "../settings";
+import type { AnyProvider, ChatRole, ChatSettings } from "../settings";
 import { redactSecrets } from "../util";
 
 /**
@@ -9,9 +9,15 @@ import { redactSecrets } from "../util";
  * Only the fields the app uses pass through; the rest is dropped.
  */
 
-export function providerBaseUrl(env: Env, provider: Provider): string {
-  const configured = provider === "mistral" ? env.MISTRAL_BASE_URL : env.OPENAI_BASE_URL;
-  return (configured?.trim() || (provider === "mistral" ? "https://api.mistral.ai" : "https://api.openai.com")).replace(/\/+$/, "");
+const DEFAULT_BASE_URLS: Record<AnyProvider, string> = {
+  mistral: "https://api.mistral.ai",
+  openai: "https://api.openai.com",
+  elevenlabs: "https://api.elevenlabs.io",
+};
+
+export function providerBaseUrl(env: Env, provider: AnyProvider): string {
+  const configured = { mistral: env.MISTRAL_BASE_URL, openai: env.OPENAI_BASE_URL, elevenlabs: env.ELEVENLABS_BASE_URL }[provider];
+  return (configured?.trim() || DEFAULT_BASE_URLS[provider]).replace(/\/+$/, "");
 }
 
 const MAX_MESSAGES = 40;

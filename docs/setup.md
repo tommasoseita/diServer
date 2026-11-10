@@ -247,6 +247,6 @@ npx wrangler d1 execute diserver --remote \
 | `invites` | Code, app, kind, role, allowed emails, uses, expiry, who created it |
 | `settings` | Organization name, diMail's domain, auto-join and model, diVoice's models and leaderboard |
 | `secrets` | diMail's Google client secret and AI key, encrypted |
-| `provider_keys` | diVoice's AI keys, encrypted |
+| `provider_keys` | diVoice's Mistral and OpenAI keys, encrypted (ElevenLabs' key is in `secrets`, as `provider_key.elevenlabs`) |
 | `dictionary_entries` | diVoice's team dictionary |
 | `dictation_events` | One row per dictation, with counts and timings: no text, no audio |

@@ -38,22 +38,34 @@ describe("formulas", () => {
 });
 
 describe("my statistics", () => {
-  it("sum the period, keep the streak and list the last 14 days", async () => {
+  it("sum the period, Scribe included, keep the streak and list the last 14 days", async () => {
     const { user, token } = await createUser();
     await recordStats(env.DB, user.id, event("2026-11-08", 120, 60_000));
     await recordStats(env.DB, user.id, event("2026-11-07", 80, 30_000));
     await recordStats(env.DB, user.id, event("2026-11-01", 400, 120_000));
     await recordStats(env.DB, user.id, event("2026-11-08", 50, 10_000, { mode: "scribe" }));
 
+    // 11-08: 170 words (Scribe too) in 70 s, 255 s to type at 40 wpm: 185 s saved; 11-07: 90 s.
     const week = (await (await call("/v2/stats/me?today=2026-11-09&days=7", { token })).json()) as Record<string, any>;
-    expect(week.summary).toMatchObject({ words: 200, dictations: 2, savedSeconds: 210, streakDays: 2 });
-    expect(week.summary.wordsPerMinute).toBeCloseTo(200 / 1.5);
+    expect(week.summary).toMatchObject({ words: 250, dictations: 3, savedSeconds: 275, streakDays: 2 });
+    expect(week.summary.wordsPerMinute).toBeCloseTo(250 / (100 / 60));
     expect(week.recent).toHaveLength(14);
-    expect(week.recent.at(-2)).toEqual({ day: "2026-11-08", words: 120 });
+    expect(week.recent.at(-2)).toEqual({ day: "2026-11-08", words: 170 });
 
     const all = (await (await call("/v2/stats/me?today=2026-11-09&days=all", { token })).json()) as Record<string, any>;
-    expect(all.summary.words).toBe(600);
+    expect(all.summary.words).toBe(650);
     expect((await call("/v2/stats/me?days=7", { token })).status).toBe(400);
+  });
+});
+
+describe("dictations without a local day", () => {
+  it("count on their UTC day, so past ones come back too", async () => {
+    const { user, token } = await createUser();
+    await recordStats(env.DB, user.id, event("2026-11-08", 30, 10_000, { localDay: null }));
+    const utcToday = new Date().toISOString().slice(0, 10);
+    const stats = (await (await call(`/v2/stats/me?today=${utcToday}&days=1`, { token })).json()) as Record<string, any>;
+    expect(stats.summary).toMatchObject({ words: 30, dictations: 1 });
+    expect(stats.recent.at(-1)).toEqual({ day: utcToday, words: 30 });
   });
 });
 

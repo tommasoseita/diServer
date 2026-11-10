@@ -47,6 +47,7 @@ interface Harness {
   chats: { url: string; headers: Headers; body: Record<string, any> }[];
   recorded: StatsInput[];
   warmed: string[];
+  keys: string[];
 }
 
 function harness(options: {
@@ -57,12 +58,15 @@ function harness(options: {
   chatResponse?: () => Response;
 }): Harness {
   const socket = new FakeSocket();
-  const h: Harness = { socket, session: undefined as unknown as RelaySession, realtime: [], batches: [], chats: [], recorded: [], warmed: [] };
+  const h: Harness = { socket, session: undefined as unknown as RelaySession, realtime: [], batches: [], chats: [], recorded: [], warmed: [], keys: [] };
   const deps: RelayDeps = {
     now: () => 1_000,
     settings: async () => ({ name: "Acme", pipeline: structuredClone(DEFAULT_PIPELINE), leaderboardEnabled: true, ...options.settings }),
-    key: async () => ("key" in options ? options.key : "org-key-123"),
-    baseUrl: (provider) => (provider === "mistral" ? "https://mistral.test" : "https://openai.test"),
+    key: async (provider) => {
+      h.keys.push(provider);
+      return "key" in options ? options.key : "org-key-123";
+    },
+    baseUrl: (provider) => `https://${provider}.test`,
     openRealtime: (o) => {
       h.realtime.push(o);
       h.transcriber = new FakeTranscriber(options.realtime ?? (async () => ({ text: "streaming text" })));
@@ -101,7 +105,7 @@ describe("transcription", () => {
 
     expect(h.transcriber!.audio).toBe(48_000);
     expect(h.batches).toHaveLength(1);
-    expect(h.batches[0]!.wav.length).toBe(44 + 48_000);
+    expect(h.batches[0]!.wav!.length).toBe(44 + 48_000);
     expect(h.batches[0]).toMatchObject({ model: "voxtral-mini-transcribe-3-0", contextBias: ["Zentrix"], language: "it" });
     expect(h.socket.of("transcript")[0]).toMatchObject({ text: "batch text", path: "batch", model: "voxtral-mini-transcribe-3-0", language: "it" });
     expect(h.transcriber!.aborted).toBe(true);
@@ -132,6 +136,26 @@ describe("transcription", () => {
     const noKey = harness({ key: undefined });
     await noKey.session.handle(start());
     expect(noKey.socket.of("error")[0]!.message).toContain("ask your admin");
+  });
+
+  it("with ElevenLabs uses its key and model, and gives the batch the raw PCM", async () => {
+    const pipeline = structuredClone(DEFAULT_PIPELINE);
+    pipeline.transcription = { ...pipeline.transcription, provider: "elevenlabs", realtimeModel: "scribe_v2_realtime", batchModel: "scribe_v2" };
+    const h = harness({ settings: { pipeline } });
+    await h.session.handle(start());
+    expect(h.keys[0]).toBe("elevenlabs");
+    expect(h.realtime[0]).toMatchObject({ provider: "elevenlabs", baseUrl: "https://elevenlabs.test", model: "scribe_v2_realtime", sampleRate: 16_000 });
+    expect(h.socket.of("ready")[0]).toMatchObject({ sampleRate: 16_000 });
+    await h.session.handle(silence(1_000));
+    await h.session.handle(JSON.stringify({ type: "finish" }));
+    expect(h.batches[0]).toMatchObject({ provider: "elevenlabs", model: "scribe_v2", sampleRate: 16_000 });
+    expect(h.batches[0]!.wav).toBeUndefined();
+    expect(h.batches[0]!.pcm!.length).toBe(32_000);
+    expect(h.socket.of("transcript")[0]).toMatchObject({ text: "batch text", path: "batch", model: "scribe_v2" });
+
+    const noKey = harness({ settings: { pipeline }, key: undefined });
+    await noKey.session.handle(start());
+    expect(noKey.socket.of("error")[0]!.message).toBe("your organization has no ElevenLabs key yet: ask your admin");
   });
 
   it("skips transcription for very short audio", async () => {

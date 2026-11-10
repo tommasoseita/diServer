@@ -9,6 +9,8 @@ import { addDays, isDay, redactSecrets } from "./util";
  *   (per day, never negative);
  * - words per minute = words / minutes of speech;
  * - day streak = consecutive days with dictations, alive until the end of today.
+ * Dictations and Scribe both count (since 0.6.0). A dictation without the member's local day
+ * (older apps, or a stats message that never arrived) counts on its UTC day.
  */
 
 export interface StatsInput {
@@ -143,13 +145,14 @@ export function parsePeriod(query: { today?: string; days?: string }): Period {
 
 async function dayRows(db: D1Database, userIds: string[] | null): Promise<DayRow[]> {
   const filter = userIds ? `AND user_id IN (${userIds.map((_, i) => `?${i + 1}`).join(", ")})` : "";
+  const day = "coalesce(local_day, date(created_at / 1000, 'unixepoch'))";
   const { results } = await db
     .prepare(
-      `SELECT user_id, local_day, sum(words) AS words, sum(audio_ms) AS audio_ms, count(*) AS dictations,
+      `SELECT user_id, ${day} AS local_day, sum(words) AS words, sum(audio_ms) AS audio_ms, count(*) AS dictations,
          CAST(round(avg(typing_wpm)) AS INTEGER) AS typing_wpm
        FROM dictation_events
-       WHERE mode = 'dictation' AND local_day IS NOT NULL AND words > 0 ${filter}
-       GROUP BY user_id, local_day`,
+       WHERE words > 0 ${filter}
+       GROUP BY user_id, ${day}`,
     )
     .bind(...(userIds ?? []))
     .all<DayRow>();

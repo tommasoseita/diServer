@@ -22,7 +22,7 @@ All endpoints return JSON. Authenticated endpoints take `Authorization: Bearer <
 | `GET` | `/v2/me` | The member, the organization, the models (`pipeline`), the audio sample rate, whether the leaderboard is on |
 | `PATCH` | `/v2/me` | `{hideFromTeam}` |
 | `GET` | `/v2/dictionary` | The team dictionary |
-| `GET` | `/v2/stats/me` | `?today=YYYY-MM-DD&days=N`: the member's words, time saved, speaking speed, streak |
+| `GET` | `/v2/stats/me` | `?today=YYYY-MM-DD&days=N`: the member's words, time saved, speaking speed, streak. Dictations and Scribe both count; one without the member's local day counts on its UTC day |
 | `GET` | `/v2/stats/team` | Same parameters: the leaderboard, empty when it's off |
 | `GET` | `/v2/relay` | WebSocket: one dictation (see below) |
 
@@ -31,7 +31,7 @@ All endpoints return JSON. Authenticated endpoints take `Authorization: Bearer <
 | Method | Path | Purpose |
 |---|---|---|
 | `GET`, `PATCH` | `/v2/admin/settings` | `{name, pipeline, leaderboardEnabled}`, plus which keys are set |
-| `PUT`, `DELETE` | `/v2/admin/keys/:provider` | `mistral` or `openai`; `PUT` takes `{key}`. Keys are never returned. |
+| `PUT`, `DELETE` | `/v2/admin/keys/:provider` | `mistral`, `openai` or `elevenlabs`; `PUT` takes `{key}`. Keys are never returned. `/v2/admin/settings` lists every provider the server takes a key for: the apps show the ones listed |
 | `GET` | `/v2/admin/members` | All members, with the apps each one uses (`apps`) |
 | `PATCH`, `DELETE` | `/v2/admin/members/:id` | `{role}`; remove. The last admin can't be demoted or removed. |
 | `GET`, `POST` | `/v2/admin/invites` | List; create with `{kind: "team" \| "personal", app?: "divoice" \| "dimail", role, days, emails?, name?, email?}`. `app` (default `divoice`) picks the invite page and download |
@@ -41,6 +41,8 @@ All endpoints return JSON. Authenticated endpoints take `Authorization: Bearer <
 ## diVoice's relay
 
 One WebSocket per dictation. The app keeps the prompts and the logic; the server adds the key and the models, keeps a copy of the audio so the transcription at release starts on the server with no second upload, and relays the app's cleanup or Scribe request on the same connection.
+
+Transcription runs with Mistral (Voxtral) or ElevenLabs (Scribe v2: `scribe_v2_realtime` and `scribe_v2`, 16 kHz), as `pipeline.transcription.provider` says; cleanup and Scribe with Mistral or OpenAI. With ElevenLabs the dictionary goes in `keyterms`: the first 50 terms of up to 20 characters while streaming, the first 100 of up to 50 characters for the batch transcription (beyond 100, ElevenLabs bills each request at least 20 seconds).
 
 App → server:
 

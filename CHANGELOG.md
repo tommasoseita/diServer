@@ -3,7 +3,7 @@
 diServer's versions are decided here, and only here: diVoice and diMail say in their release notes
 which diServer version they need at least, and never set or bump it. See [docs/releasing.md](docs/releasing.md).
 
-## 0.6.0 (not published yet)
+## 0.6.0 (10 November 2026)
 
 diVoice 0.5.0 needs this version.
 

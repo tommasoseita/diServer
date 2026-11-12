@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { User } from "../src/env";
 import type { BatchOptions, RealtimeOptions, StreamingTranscriber, TranscriptResult } from "../src/providers/mistral";
 import { parseVocabulary, RelaySession, type RelayDeps } from "../src/relay";
@@ -275,6 +275,41 @@ describe("chat relay", () => {
     const error = h.socket.of("chat.error")[0]!;
     expect(error).toMatchObject({ id: 3, status: 401 });
     expect(error.body).not.toContain("sk-");
+  });
+
+  it("gives the provider more time for a longer text, and never less than 20 s and 90 s", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    // The time limit of the request the provider receives, for a text of `chars` characters.
+    const limit = async (role: "cleanup" | "scribe", chars: number, system = "rules") => {
+      const h = await transcribed();
+      timeout.mockClear();
+      const messages = [
+        { role: "system", content: system },
+        { role: "user", content: "a".repeat(chars - 1_000) },
+        { role: "user", content: "b".repeat(1_000) },
+      ];
+      await h.session.handle(JSON.stringify({ type: "chat", id: 1, role, body: { messages } }));
+      await tick();
+      await tick();
+      expect(h.socket.of("chat.done")).toHaveLength(1);
+      expect(timeout.mock.calls).toHaveLength(1);
+      return timeout.mock.calls[0]![0];
+    };
+    try {
+      // Short: the limits older servers had.
+      expect(await limit("scribe", 1_100)).toBe(90_000);
+      expect(await limit("cleanup", 1_100)).toBe(20_000);
+      // A dictation of 3 minutes 45: 60 s + 1 s per 40 characters.
+      expect(await limit("scribe", 4_500)).toBe(172_500);
+      expect(await limit("cleanup", 6_000)).toBe(23_000);
+      // Ten minutes: the ceilings.
+      expect(await limit("scribe", 12_000)).toBe(300_000);
+      expect(await limit("cleanup", 12_000)).toBe(30_000);
+      // The system prompt doesn't count.
+      expect(await limit("scribe", 1_100, "r".repeat(20_000))).toBe(90_000);
+    } finally {
+      timeout.mockRestore();
+    }
   });
 
   it("allows a chat-only Verify without audio", async () => {

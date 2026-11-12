@@ -65,7 +65,7 @@ Server → app:
 {"type":"error", code, message}, then the server closes
 ```
 
-The server only forwards known fields of a chat request; it sets the model, the service tier and predicted outputs from the organization's settings, and caps the response length (8,000 tokens for cleanup, 12,000 for Scribe). A `start` without `sampleRate` opens a chat-only session, which Verify uses. Each member can start at most 60 dictations in 5 minutes.
+The server only forwards known fields of a chat request; it sets the model, the service tier and predicted outputs from the organization's settings, and caps the response length (8,000 tokens for cleanup, 12,000 for Scribe). The provider gets a time that grows with the text of the request (every message but the system prompt): for Scribe 60 s plus 1 s per 40 characters, between 90 s and 300 s; for cleanup 8 s plus 1 s per 400 characters, between 20 s and 30 s. Past it the app receives a `chat.error` with status 502. A `start` without `sampleRate` opens a chat-only session, which Verify uses. Each member can start at most 60 dictations in 5 minutes.
 
 
 ## diMail

@@ -67,6 +67,27 @@ export function sanitizeChatBody(body: unknown, settings: ChatSettings, role: Ch
   return out;
 }
 
+/**
+ * How long the provider gets to answer. It grows with the text the app sends (the dictation, the
+ * selection and the screen context: every message but the system prompt, whose length is fixed)
+ * and is never shorter than the fixed limits before 0.6.1: 20 s for cleanup, 90 s for Scribe.
+ * The app's own limits are 60 s + 1 s per 40 characters for Scribe (300 s at most) and
+ * 8 s + 1 s per 400 characters for cleanup (30 s at most).
+ */
+const CHAT_TIMEOUT: Record<ChatRole, { baseMs: number; msPerChar: number; minMs: number; maxMs: number }> = {
+  cleanup: { baseMs: 8_000, msPerChar: 2.5, minMs: 20_000, maxMs: 30_000 },
+  scribe: { baseMs: 60_000, msPerChar: 25, minMs: 90_000, maxMs: 300_000 },
+};
+
+/** `body` is a request as sanitizeChatBody returns it. */
+export function chatTimeoutMs(body: Record<string, unknown>, role: ChatRole): number {
+  const messages = Array.isArray(body.messages) ? (body.messages as { role?: unknown; content?: unknown }[]) : [];
+  let chars = 0;
+  for (const m of messages) if (m.role !== "system" && typeof m.content === "string") chars += m.content.length;
+  const t = CHAT_TIMEOUT[role];
+  return Math.min(t.maxMs, Math.max(t.minMs, Math.round(t.baseMs + chars * t.msPerChar)));
+}
+
 export interface ChatRelayOptions {
   baseUrl: string;
   apiKey: string;

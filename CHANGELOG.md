@@ -3,6 +3,15 @@
 diServer's versions are decided here, and only here: diVoice and diMail say in their release notes
 which diServer version they need at least, and never set or bump it. See [docs/releasing.md](docs/releasing.md).
 
+## 0.6.1 (12 November 2026)
+
+- **Long dictations through the relay get the time they need.** The server used to stop a Scribe
+  request at 90 seconds and a cleanup at 20, however long the text: a dictation of a few minutes
+  with a slow model could be cut before the answer was complete. The limit now grows with the text
+  of the request: for Scribe 60 seconds plus one per 40 characters, up to 300; for cleanup 8 seconds
+  plus one per 400 characters, up to 30. It's never shorter than before, so older apps only get more
+  time. Nothing changes in the protocol or in the settings.
+
 ## 0.6.0 (10 November 2026)
 
 diVoice 0.5.0 needs this version.

@@ -1,9 +1,9 @@
 import type { Env, User } from "./env";
 import { providerKey } from "./keys";
-import { providerBaseUrl, relayChat, sanitizeChatBody, type ChatRelayResult } from "./providers/chat";
+import { chatTimeoutMs, providerBaseUrl, relayChat, sanitizeChatBody, type ChatRelayResult } from "./providers/chat";
 import type { BatchOptions, RealtimeOptions, StreamingTranscriber, TranscriptResult } from "./providers/mistral";
 import { realtimeFinishTimeoutMs } from "./providers/elevenlabs";
-import { PROVIDER_NAMES, SAMPLE_RATES, type AnyProvider, type ChatRole, type OrgSettings } from "./settings";
+import { PROVIDER_NAMES, SAMPLE_RATES, type AnyProvider, type OrgSettings } from "./settings";
 import { cleanTimings, label, type StatsInput } from "./stats";
 import { concatBytes, errorMessage, isDay, pcmDurationMs, pcmToWav, redactSecrets, wordCount } from "./util";
 
@@ -63,7 +63,6 @@ const MAX_AUDIO_SECONDS = 600;
 const MIN_AUDIO_MS = 250;
 const REALTIME_DONE_TIMEOUT_MS = 4_000;
 const MAX_CHATS = 4;
-const CHAT_TIMEOUT_MS: Record<ChatRole, number> = { cleanup: 20_000, scribe: 90_000 };
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LANGUAGE = /^[a-z]{2}$/;
 
@@ -376,7 +375,7 @@ export class RelaySession {
         baseUrl: this.deps.baseUrl(settings.provider),
         apiKey: key,
         body,
-        timeoutMs: CHAT_TIMEOUT_MS[role],
+        timeoutMs: chatTimeoutMs(body, role),
         fetchImpl: this.deps.fetchImpl,
         onLine: (line) => this.send({ type: "chat.line", id, line }),
       });
